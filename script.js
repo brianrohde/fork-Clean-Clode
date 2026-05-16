@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function isMarkdownTable(text) {
-        return /^\s{2,}\|/m.test(text);
+        return /^\s+\|/m.test(text);
     }
 
     function extractMarkdownTables(input) {
@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
 
-            if (/^\s{2,}\|/.test(line)) {
-                currentTable.push(line.replace(/^\s{2,}/, ''));
+            if (/^\s+\|/.test(line)) {
+                currentTable.push(line.replace(/^\s+/, ''));
             } else {
                 if (currentTable.length > 0) {
                     tables.push(currentTable.join('\n'));
