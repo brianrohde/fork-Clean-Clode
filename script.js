@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function isMarkdownTable(text) {
-        return /^\s{2,}\|/.test(text);
+        return /^\s{2,}\|/m.test(text);
     }
 
     function extractMarkdownTables(input) {
