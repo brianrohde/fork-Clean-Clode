@@ -595,8 +595,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const extraction = extractMarkdownTables(input);
             tables = extraction.tables;
             contentToClean = extraction.contentLines.join('\n');
-            console.log('DEBUG: Tables detected. Found', tables.length, 'tables');
-            console.log('DEBUG: First table:', tables[0]?.substring(0, 100));
+            console.log('PRESERVE_TABLES_ENABLED: true');
+            console.log('MARKDOWN_TABLE_DETECTED:', hasMarkdownTable);
+            console.log('TABLES_FOUND:', tables.length);
+            if (tables.length > 0) {
+                console.log('FIRST_TABLE_PREVIEW:', tables[0].split('\n').slice(0, 3).join(' | '));
+            }
+        } else {
+            console.log('PRESERVE_TABLES_ENABLED:', preserveTables);
+            console.log('MARKDOWN_TABLE_DETECTED: false');
         }
 
         let cleanedContent = contentToClean;
@@ -621,10 +628,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 result.push(cleanedContent);
             }
             result.push(...tables);
-
-            return result.filter(item => item.trim().length > 0).join('\n\n');
+            const finalOutput = result.filter(item => item.trim().length > 0).join('\n\n');
+            console.log('OUTPUT_WITH_TABLES:', finalOutput.substring(0, 200));
+            return finalOutput;
         }
 
+        console.log('OUTPUT_WITHOUT_TABLES:', cleanedContent.substring(0, 200));
         return cleanedContent;
     }
 
