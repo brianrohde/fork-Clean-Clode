@@ -55,31 +55,25 @@ document.addEventListener('DOMContentLoaded', function() {
     function extractMarkdownTables(input) {
         const lines = input.split('\n');
         const tables = [];
-        const tableLines = [];
-        let inTable = false;
-        let contentLines = [];
+        let i = 0;
+        const contentLines = [];
 
-        for (let i = 0; i < lines.length; i++) {
+        while (i < lines.length) {
             const line = lines[i];
             const trimmed = line.trim();
 
             if (/^\s*\|/.test(trimmed)) {
-                if (!inTable) {
-                    inTable = true;
+                const tableLines = [line];
+                i++;
+                while (i < lines.length && /^\s*\|/.test(lines[i].trim())) {
+                    tableLines.push(lines[i]);
+                    i++;
                 }
-                tableLines.push(line);
+                tables.push(tableLines.join('\n'));
             } else {
-                if (inTable) {
-                    tables.push(tableLines.join('\n'));
-                    tableLines.length = 0;
-                    inTable = false;
-                }
                 contentLines.push(line);
+                i++;
             }
-        }
-
-        if (tableLines.length > 0) {
-            tables.push(tableLines.join('\n'));
         }
 
         return { tables, contentLines };
@@ -606,47 +600,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const preserveTables = isPreserveTablesEnabled();
         let hasMarkdownTable = false;
         let tables = [];
-        let contentLines = [];
+        let contentToClean = input;
 
         if (preserveTables && isMarkdownTable(input)) {
             hasMarkdownTable = true;
             const extraction = extractMarkdownTables(input);
             tables = extraction.tables;
-            contentLines = extraction.contentLines;
+            contentToClean = extraction.contentLines.join('\n');
         }
 
-        let cleanedContent = input;
+        let cleanedContent = contentToClean;
 
-        if (/^\s*\d+\s*[+-]\s/m.test(input)) {
-            cleanedContent = cleanGitDiff(input);
-        } else if (/[│┃╏╎▌]/.test(input) || /\|/.test(input)) {
-            cleanedContent = cleanClaudeDump(input);
+        if (/^\s*\d+\s*[+-]\s/m.test(contentToClean)) {
+            cleanedContent = cleanGitDiff(contentToClean);
+        } else if (/[│┃╏╎▌]/.test(contentToClean) || (!hasMarkdownTable && /\|/.test(contentToClean))) {
+            cleanedContent = cleanClaudeDump(contentToClean);
         } else {
-            const codeScore = (input.match(/[{}();=]/g) || []).length;
-            const lineCount = input.split('\n').length;
+            const codeScore = (contentToClean.match(/[{}();=]/g) || []).length;
+            const lineCount = contentToClean.split('\n').length;
             if (lineCount > 0 && codeScore / lineCount > 0.5) {
-                cleanedContent = input.trim();
+                cleanedContent = contentToClean.trim();
             } else {
-                cleanedContent = cleanLLMText(input);
+                cleanedContent = cleanLLMText(contentToClean);
             }
         }
 
         if (hasMarkdownTable && tables.length > 0) {
-            const cleanedLines = contentLines
-                .map(line => {
-                    if (/^\s*\d+\s*[+-]\s/m.test(line)) {
-                        return cleanGitDiff(line);
-                    } else if (/[│┃╏╎▌]/.test(line)) {
-                        return cleanClaudeDump(line);
-                    } else {
-                        return line.trim();
-                    }
-                })
-                .filter(line => line.length > 0);
-
             const result = [];
-            if (cleanedLines.length > 0) {
-                result.push(cleanedLines.join('\n'));
+            if (cleanedContent.trim().length > 0) {
+                result.push(cleanedContent);
             }
             result.push(...tables);
 
