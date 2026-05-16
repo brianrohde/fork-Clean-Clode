@@ -548,7 +548,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cleanLLMText(input) {
-        return input
+        // Preserve YAML frontmatter blocks (between --- markers)
+        const yamlMatch = input.match(/^---\n([\s\S]*?)\n---/);
+        let yamlBlock = '';
+        let contentToClean = input;
+
+        if (yamlMatch) {
+            yamlBlock = yamlMatch[0]; // Keep the entire YAML block as-is
+            contentToClean = input.substring(yamlMatch[0].length).trim();
+        }
+
+        const cleaned = contentToClean
             .replace(
                 /([^\n])\n(?!\s*(#|[\-*•●⏺▶▪◦]|\d+\.|[A-Z][a-z]|[📌🎯📋📖✨✅❌⭐🔥👉➡️]|$))/g,
                 '$1 '
@@ -559,6 +569,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .join('\n')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
+
+        return yamlBlock ? (yamlBlock + '\n\n' + cleaned) : cleaned;
     }
 
     function cleanGitDiff(input) {
