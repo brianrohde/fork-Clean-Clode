@@ -1,6 +1,12 @@
-    | Column A | Column B |
-    |----------|----------|
-    | Value 1  | Value 2  |
-Text after Table no indent
-  Text after Table 2 space indent
-    Text after table 4 space indent
+  ## Format Comparison
+
+  | Aspect | `.py` (Python Script) | `.ipynb` (Jupyter Notebook) |
+  |--------|----------------------|---------------------------|
+  | **File Structure** | Plain text (human-readable) | JSON (structured data) |
+  | **Cell Concept** | Sections marked with `# %%` comments | True cells with metadata, execution order |
+  | **Output Storage** | None (outputs not persisted) | Outputs stored (plots, tables, print results) |
+  | **Direct Execution** | ✓ `python script.py` | ✗ Requires Jupyter/notebook viewer |
+  | **Git Diffs** | ✓ Clean, readable | ✗ JSON diffs are messy (hard to review) |
+  | **Iterative Work** | Less convenient (full re-run each time) | ✓ Better (run/edit cell-by-cell) |
+  | **Cell-by-Cell Output** | ✗ Not visible during development | ✓ Visible immediately |
+  | **Reproducibility** | ✓ Full control of execution order | ⚠️  Depends on cell execution history |
