@@ -548,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function cleanLLMText(input) {
         return input
             .replace(
-                /([^\n])\n(?!\s*([\-*•●⏺▶▪◦]|\d+\.|[A-Z][a-z]|[📌🎯📋📖✨✅❌⭐🔥👉➡️]|$))/g,
+                /([^\n])\n(?!\s*(#|[\-*•●⏺▶▪◦]|\d+\.|[A-Z][a-z]|[📌🎯📋📖✨✅❌⭐🔥👉➡️]|$))/g,
                 '$1 '
             )
             .replace(/[ \t]+/g, ' ')

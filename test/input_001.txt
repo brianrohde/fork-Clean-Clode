@@ -1,4 +1,9 @@
-  ## Format Comparison
+# Jupyter Notebook vs Python Script
+## Core Principle
+Choose `.ipynb` for **iterative exploration & result sharing**; choose `.py` for **production code & version control**. Both formats are complementary—not mutually exclusive. Bidirectional conversion enables workflow flexibility.
+
+---
+## Format Comparison
 
   | Aspect | `.py` (Python Script) | `.ipynb` (Jupyter Notebook) |
   |--------|----------------------|---------------------------|
@@ -10,3 +15,12 @@
   | **Iterative Work** | Less convenient (full re-run each time) | ✓ Better (run/edit cell-by-cell) |
   | **Cell-by-Cell Output** | ✗ Not visible during development | ✓ Visible immediately |
   | **Reproducibility** | ✓ Full control of execution order | ⚠️  Depends on cell execution history |
+
+---
+
+## Use Cases
+
+### When to Use `.py`
+- **Production code & deployment**
+- **CI/CD pipelines** (automated testing)
+- **Version control** (Git-friendly)

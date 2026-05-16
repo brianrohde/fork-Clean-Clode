@@ -52,7 +52,7 @@ function extractMarkdownTables(input) {
 function cleanLLMText(input) {
     return input
         .replace(
-            /([^\n])\n(?!\s*([\-*•●⏺▶▪◦]|\d+\.|[A-Z][a-z]|[📌🎯📋📖✨✅❌⭐🔥👉➡️]|$))/g,
+            /([^\n])\n(?!\s*(#|[\-*•●⏺▶▪◦]|\d+\.|[A-Z][a-z]|[📌🎯📋📖✨✅❌⭐🔥👉➡️]|$))/g,
             '$1 '
         )
         .replace(/[ \t]+/g, ' ')
@@ -238,21 +238,23 @@ for (const inputFile of testsToRun) {
     const outputFile = `output_${testNum}.txt`;
     const outputPath = path.join(testDir, outputFile);
 
-    // Skip if no expected output file
-    if (!fs.existsSync(expectedPath)) {
-        console.log(`⏭️  test_${testNum}: SKIPPED (no ${expectedFile})`);
-        continue;
-    }
-
     const inputPath = path.join(testDir, inputFile);
     const input = fs.readFileSync(inputPath, 'utf8');
-    const expected = fs.readFileSync(expectedPath, 'utf8');
 
     // Run the cleaning logic
     const output = detectAndClean(input);
 
-    // Always save the actual output
+    // ALWAYS save the actual output, regardless of whether expected file exists or test passes
     fs.writeFileSync(outputPath, output, 'utf8');
+
+    // Skip comparison if no expected output file
+    if (!fs.existsSync(expectedPath)) {
+        console.log(`⏭️  test_${testNum}: GENERATED (no ${expectedFile} for comparison)`);
+        console.log(`   💾 Output saved to: ${outputFile}`);
+        continue;
+    }
+
+    const expected = fs.readFileSync(expectedPath, 'utf8');
 
     if (output === expected) {
         console.log(`✅ test_${testNum}: PASSED`);
