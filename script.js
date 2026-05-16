@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let hasHeaderSeparator = false;
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
-            if (/^\s*\|[\s\-:|]+\|\s*$/.test(line)) {
+            if (/^\|[\s\-:|]+\|/.test(line)) {
                 hasHeaderSeparator = true;
                 break;
             }
