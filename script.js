@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const copyBtn = document.getElementById('copy-btn');
     const editedBadge = document.getElementById('edited-badge');
     const copiedBadge = document.getElementById('copied-badge');
+    const preserveTablesCheckbox = document.getElementById('preserve-tables');
     
     const historySection = document.getElementById('history-section');
     const historyToggle = document.getElementById('history-toggle');
@@ -21,9 +22,68 @@ document.addEventListener('DOMContentLoaded', function() {
     const HISTORY_ENABLED_KEY = 'clean-clode-history-enabled';
     const ABOUT_VISIBLE_KEY = 'clean-clode-about-visible';
     const FIRST_USE_KEY = 'clean-clode-first-use';
+    const PRESERVE_TABLES_KEY = 'clean-clode-preserve-tables';
 
     let lastCleanedInput = '';
     let lastCleanedOutput = '';
+
+    function isPreserveTablesEnabled() {
+        const enabled = localStorage.getItem(PRESERVE_TABLES_KEY);
+        return enabled === 'true';
+    }
+
+    function savePreserveTablesSetting(enabled) {
+        localStorage.setItem(PRESERVE_TABLES_KEY, enabled.toString());
+    }
+
+    function isMarkdownTable(text) {
+        const lines = text.split('\n');
+        if (lines.length < 2) return false;
+
+        let hasHeaderSeparator = false;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (/^\s*\|[\s\-:|]+\|\s*$/.test(line)) {
+                hasHeaderSeparator = true;
+                break;
+            }
+        }
+
+        return hasHeaderSeparator;
+    }
+
+    function extractMarkdownTables(input) {
+        const lines = input.split('\n');
+        const tables = [];
+        const tableLines = [];
+        let inTable = false;
+        let contentLines = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            if (/^\s*\|/.test(trimmed)) {
+                if (!inTable) {
+                    inTable = true;
+                }
+                tableLines.push(line);
+            } else {
+                if (inTable) {
+                    tables.push(tableLines.join('\n'));
+                    tableLines.length = 0;
+                    inTable = false;
+                }
+                contentLines.push(line);
+            }
+        }
+
+        if (tableLines.length > 0) {
+            tables.push(tableLines.join('\n'));
+        }
+
+        return { tables, contentLines };
+    }
 
     console.log('%c█▀▀ █░░ █▀▀ █▀█ █▄░█   █▀▀ █░░ █▀█ █▀▄ █▀▀\n' +
                 '█▄▄ █▄▄ ██▄ █▀█ █░▀█   █▄▄ █▄▄ █▄█ █▄▀ ██▄', 
@@ -543,21 +603,57 @@ document.addEventListener('DOMContentLoaded', function() {
             return '';
         }
 
+        const preserveTables = isPreserveTablesEnabled();
+        let hasMarkdownTable = false;
+        let tables = [];
+        let contentLines = [];
+
+        if (preserveTables && isMarkdownTable(input)) {
+            hasMarkdownTable = true;
+            const extraction = extractMarkdownTables(input);
+            tables = extraction.tables;
+            contentLines = extraction.contentLines;
+        }
+
+        let cleanedContent = input;
+
         if (/^\s*\d+\s*[+-]\s/m.test(input)) {
-            return cleanGitDiff(input);
+            cleanedContent = cleanGitDiff(input);
+        } else if (/[│┃╏╎▌]/.test(input) || /\|/.test(input)) {
+            cleanedContent = cleanClaudeDump(input);
+        } else {
+            const codeScore = (input.match(/[{}();=]/g) || []).length;
+            const lineCount = input.split('\n').length;
+            if (lineCount > 0 && codeScore / lineCount > 0.5) {
+                cleanedContent = input.trim();
+            } else {
+                cleanedContent = cleanLLMText(input);
+            }
         }
 
-        if (/[│┃╏╎▌]/.test(input) || /\|/.test(input)) {
-            return cleanClaudeDump(input);
+        if (hasMarkdownTable && tables.length > 0) {
+            const cleanedLines = contentLines
+                .map(line => {
+                    if (/^\s*\d+\s*[+-]\s/m.test(line)) {
+                        return cleanGitDiff(line);
+                    } else if (/[│┃╏╎▌]/.test(line)) {
+                        return cleanClaudeDump(line);
+                    } else {
+                        return line.trim();
+                    }
+                })
+                .filter(line => line.length > 0);
+
+            const result = [];
+            if (cleanedLines.length > 0) {
+                result.push(cleanedLines.join('\n'));
+            }
+            result.push(...tables);
+
+            return result.filter(item => item.trim().length > 0).join('\n\n');
         }
 
-        const codeScore = (input.match(/[{}();=]/g) || []).length;
-        const lineCount = input.split('\n').length;
-        if (lineCount > 0 && codeScore / lineCount > 0.5) {
-            return input.trim(); // leave code mostly untouched
-        }
-
-        return cleanLLMText(input);
+        return cleanedContent;
     }
 
     cleanBtn.addEventListener('click', performCleanup);
@@ -702,6 +798,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isSafari() && !isMobile()) {
         copyBtn.classList.add('safari-user');
     }
-    
+
+    preserveTablesCheckbox.checked = isPreserveTablesEnabled();
+    preserveTablesCheckbox.addEventListener('change', function() {
+        savePreserveTablesSetting(this.checked);
+    });
+
     inputText.focus();
 });

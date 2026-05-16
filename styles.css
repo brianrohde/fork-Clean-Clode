@@ -1016,3 +1016,22 @@ strong, b {
     pointer-events: auto;
     transition: transform 0.2s ease;
 }
+
+/* Checkbox styling for preserve tables option */
+.tui-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary-green);
+    flex-shrink: 0;
+}
+
+.tui-checkbox:focus {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+label[for="preserve-tables"] {
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+}
