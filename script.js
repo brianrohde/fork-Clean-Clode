@@ -42,8 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function extractMarkdownTables(input) {
         const lines = input.split('\n');
-        const contentLines = [];
-        const tables = [];
+        const result = [];
         let currentTable = [];
 
         for (let i = 0; i < lines.length; i++) {
@@ -53,18 +52,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentTable.push(line.replace(/^\s+/, ''));
             } else {
                 if (currentTable.length > 0) {
-                    tables.push(currentTable.join('\n'));
+                    result.push({ type: 'table', content: currentTable.join('\n') });
                     currentTable = [];
                 }
-                contentLines.push(line);
+                result.push({ type: 'content', content: line });
             }
         }
 
         if (currentTable.length > 0) {
-            tables.push(currentTable.join('\n'));
+            result.push({ type: 'table', content: currentTable.join('\n') });
         }
 
-        return { tables, contentLines };
+        return result;
     }
 
     console.log('%c█▀▀ █░░ █▀▀ █▀█ █▄░█   █▀▀ █░░ █▀█ █▀▄ █▀▀\n' +
@@ -587,59 +586,107 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const preserveTables = isPreserveTablesEnabled();
         let hasMarkdownTable = false;
-        let tables = [];
-        let contentToClean = input;
+        let extracted = null;
 
         if (preserveTables && isMarkdownTable(input)) {
             hasMarkdownTable = true;
-            const extraction = extractMarkdownTables(input);
-            tables = extraction.tables;
-            contentToClean = extraction.contentLines.join('\n');
+            extracted = extractMarkdownTables(input);
             console.log('PRESERVE_TABLES_ENABLED: true');
             console.log('MARKDOWN_TABLE_DETECTED:', hasMarkdownTable);
-            console.log('TABLES_FOUND:', tables.length);
-            if (tables.length > 0) {
-                console.log('FIRST_TABLE_PREVIEW:', tables[0].split('\n').slice(0, 3).join(' | '));
-            }
+            const tableCount = extracted.filter(item => item.type === 'table').length;
+            console.log('TABLES_FOUND:', tableCount);
         } else {
             console.log('PRESERVE_TABLES_ENABLED:', preserveTables);
             console.log('MARKDOWN_TABLE_DETECTED: false');
         }
 
-        let cleanedContent = contentToClean;
+        if (!hasMarkdownTable) {
+            // No tables extracted, clean normally
+            let cleanedContent = input;
 
-        if (/^\s*\d+\s*[+-]\s/m.test(contentToClean)) {
-            cleanedContent = cleanGitDiff(contentToClean);
-        } else if (/[│┃╏╎▌]/.test(contentToClean)) {
-            // Always use cleanClaudeDump for box-drawing characters
-            cleanedContent = cleanClaudeDump(contentToClean);
-        } else if (/\|/.test(contentToClean) && !hasMarkdownTable) {
-            // Only use cleanClaudeDump for pipes if we haven't extracted tables
-            // (cleanClaudeDump strips pipes, which we want to avoid after table extraction)
-            cleanedContent = cleanClaudeDump(contentToClean);
-        } else {
-            const codeScore = (contentToClean.match(/[{}();=]/g) || []).length;
-            const lineCount = contentToClean.split('\n').length;
-            if (lineCount > 0 && codeScore / lineCount > 0.5) {
-                cleanedContent = contentToClean.trim();
+            if (/^\s*\d+\s*[+-]\s/m.test(input)) {
+                cleanedContent = cleanGitDiff(input);
+            } else if (/[│┃╏╎▌]/.test(input) || /\|/.test(input)) {
+                cleanedContent = cleanClaudeDump(input);
             } else {
-                cleanedContent = cleanLLMText(contentToClean);
+                const codeScore = (input.match(/[{}();=]/g) || []).length;
+                const lineCount = input.split('\n').length;
+                if (lineCount > 0 && codeScore / lineCount > 0.5) {
+                    cleanedContent = input.trim();
+                } else {
+                    cleanedContent = cleanLLMText(input);
+                }
+            }
+
+            console.log('OUTPUT_WITHOUT_TABLES:', cleanedContent.substring(0, 200));
+            return cleanedContent;
+        }
+
+        // Tables were extracted, process each content block separately while preserving table positions
+        const result = [];
+        let contentBuffer = [];
+
+        for (const item of extracted) {
+            if (item.type === 'table') {
+                // Clean and output any buffered content first
+                if (contentBuffer.length > 0) {
+                    const bufferedText = contentBuffer.join('\n');
+                    let cleanedContent = bufferedText;
+
+                    if (/^\s*\d+\s*[+-]\s/m.test(bufferedText)) {
+                        cleanedContent = cleanGitDiff(bufferedText);
+                    } else if (/[│┃╏╎▌]/.test(bufferedText)) {
+                        cleanedContent = cleanClaudeDump(bufferedText);
+                    } else {
+                        const codeScore = (bufferedText.match(/[{}();=]/g) || []).length;
+                        const lineCount = bufferedText.split('\n').length;
+                        if (lineCount > 0 && codeScore / lineCount > 0.5) {
+                            cleanedContent = bufferedText.trim();
+                        } else {
+                            cleanedContent = cleanLLMText(bufferedText);
+                        }
+                    }
+
+                    if (cleanedContent.trim().length > 0) {
+                        result.push(cleanedContent);
+                    }
+                    contentBuffer = [];
+                }
+                // Add the table as-is (already dedented)
+                result.push(item.content);
+            } else {
+                // Buffer content lines
+                contentBuffer.push(item.content);
             }
         }
 
-        if (hasMarkdownTable && tables.length > 0) {
-            const result = [];
+        // Clean any remaining buffered content
+        if (contentBuffer.length > 0) {
+            const bufferedText = contentBuffer.join('\n');
+            let cleanedContent = bufferedText;
+
+            if (/^\s*\d+\s*[+-]\s/m.test(bufferedText)) {
+                cleanedContent = cleanGitDiff(bufferedText);
+            } else if (/[│┃╏╎▌]/.test(bufferedText)) {
+                cleanedContent = cleanClaudeDump(bufferedText);
+            } else {
+                const codeScore = (bufferedText.match(/[{}();=]/g) || []).length;
+                const lineCount = bufferedText.split('\n').length;
+                if (lineCount > 0 && codeScore / lineCount > 0.5) {
+                    cleanedContent = bufferedText.trim();
+                } else {
+                    cleanedContent = cleanLLMText(bufferedText);
+                }
+            }
+
             if (cleanedContent.trim().length > 0) {
                 result.push(cleanedContent);
             }
-            result.push(...tables);
-            const finalOutput = result.filter(item => item.trim().length > 0).join('\n\n');
-            console.log('OUTPUT_WITH_TABLES:', finalOutput.substring(0, 200));
-            return finalOutput;
         }
 
-        console.log('OUTPUT_WITHOUT_TABLES:', cleanedContent.substring(0, 200));
-        return cleanedContent;
+        const finalOutput = result.filter(item => item.trim().length > 0).join('\n\n');
+        console.log('OUTPUT_WITH_TABLES:', finalOutput.substring(0, 200));
+        return finalOutput;
     }
 
     cleanBtn.addEventListener('click', performCleanup);
