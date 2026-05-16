@@ -1,0 +1,6 @@
+    | Column A | Column B |
+    |----------|----------|
+    | Value 1  | Value 2  |
+Text after Table no indent
+  Text after Table 2 space indent
+    Text after table 4 space indent
