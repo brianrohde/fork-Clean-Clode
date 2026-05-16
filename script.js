@@ -37,43 +37,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function isMarkdownTable(text) {
-        const lines = text.split('\n');
-        if (lines.length < 2) return false;
-
-        let hasHeaderSeparator = false;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (/^\|[\s\-:|]+\|/.test(line)) {
-                hasHeaderSeparator = true;
-                break;
-            }
-        }
-
-        return hasHeaderSeparator;
+        return /^  \|/.test(text);
     }
 
     function extractMarkdownTables(input) {
         const lines = input.split('\n');
-        const tables = [];
-        let i = 0;
         const contentLines = [];
+        const tables = [];
+        let currentTable = [];
 
-        while (i < lines.length) {
+        for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const trimmed = line.trim();
 
-            if (/^\|/.test(trimmed)) {
-                const tableLines = [trimmed];
-                i++;
-                while (i < lines.length && /^\|/.test(lines[i].trim())) {
-                    tableLines.push(lines[i].trim());
-                    i++;
-                }
-                tables.push(tableLines.join('\n'));
+            if (/^  \|/.test(line)) {
+                currentTable.push(line.replace(/^  /, ''));
             } else {
+                if (currentTable.length > 0) {
+                    tables.push(currentTable.join('\n'));
+                    currentTable = [];
+                }
                 contentLines.push(line);
-                i++;
             }
+        }
+
+        if (currentTable.length > 0) {
+            tables.push(currentTable.join('\n'));
         }
 
         return { tables, contentLines };
