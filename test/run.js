@@ -52,23 +52,18 @@ function extractMarkdownTables(input) {
 }
 
 function cleanLLMText(input) {
-    // Preserve YAML frontmatter blocks (between --- markers)
-    const yamlMatch = input.match(/^---\n([\s\S]*?)\n---/);
+    // Preserve YAML frontmatter ONLY if it's at the document start
+    // Obsidian YAML: first --- to second --- at document beginning
+    // Subsequent --- are horizontal rule dividers, not YAML
+    const yamlMatch = input.match(/^---\n([\s\S]*?)\n---\n/);
     let yamlBlock = '';
     let contentToClean = input;
 
     if (yamlMatch) {
-        yamlBlock = yamlMatch[0]; // Keep the entire YAML block as-is, no trimming
-        contentToClean = input.substring(yamlMatch[0].length).trimLeft();
+        yamlBlock = yamlMatch[0].trimRight(); // Keep YAML block, trim trailing whitespace but preserve structure
+        contentToClean = input.substring(yamlMatch[0].length).trim();
     }
 
-    // For content after YAML, preserve structure but fix text wrapping
-    // Don't join lines that:
-    // - Start with # (markdown headers)
-    // - Start with list markers (-, *, •, etc.)
-    // - Start with numbers followed by period (ordered lists)
-    // - Start with capital letter (new sentence/paragraph)
-    // - Are empty
     const cleaned = contentToClean
         .replace(
             /([^\n])\n(?!\s*(#|[\-*•●⏺▶▪◦]|\d+\.|[A-Z][a-z]|[📌🎯📋📖✨✅❌⭐🔥👉➡️]|$))/g,

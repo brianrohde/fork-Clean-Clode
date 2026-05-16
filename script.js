@@ -548,13 +548,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cleanLLMText(input) {
-        // Preserve YAML frontmatter blocks (between --- markers)
-        const yamlMatch = input.match(/^---\n([\s\S]*?)\n---/);
+        // Preserve YAML frontmatter ONLY if it's at the document start
+        // Obsidian YAML: first --- to second --- at document beginning
+        // Subsequent --- are horizontal rule dividers, not YAML
+        const yamlMatch = input.match(/^---\n([\s\S]*?)\n---\n/);
         let yamlBlock = '';
         let contentToClean = input;
 
         if (yamlMatch) {
-            yamlBlock = yamlMatch[0]; // Keep the entire YAML block as-is
+            yamlBlock = yamlMatch[0].trimRight(); // Keep YAML block, trim trailing whitespace but preserve structure
             contentToClean = input.substring(yamlMatch[0].length).trim();
         }
 
