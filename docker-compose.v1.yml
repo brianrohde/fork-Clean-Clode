@@ -1,0 +1,31 @@
+# Docker Compose override to deploy Clean Clode v1 alongside v2
+# Usage: docker compose -f docker-compose.yml -f docker-compose.v1.yml up -d
+
+version: '3.8'
+
+services:
+  cleanclode-v1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # For v1, you'd check out v1-original branch in separate directory
+      # Or use a git submodule / separate clone
+    container_name: cleanclode-v1
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+    networks:
+      - n8n_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cleanclode-v1.rule=Host(`cleanclode-v1.anothershadeofgrey.com`)"
+      - "traefik.http.routers.cleanclode-v1.entrypoints=web,websecure"
+      - "traefik.http.routers.cleanclode-v1.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cleanclode-v1.loadbalancer.server.port=80"
+    environment:
+      - VERSION=v1
+      - TITLE=Clean Clode v1 (Original)
+
+networks:
+  n8n_network:
+    external: true

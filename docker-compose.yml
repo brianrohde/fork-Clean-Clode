@@ -1,11 +1,12 @@
 version: '3.8'
 
 services:
+  # Clean Clode v2 (with markdown table preservation) - main domain
   cleanclode:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cleanclode
+    container_name: cleanclode-v2
     ports:
       - "3000:80"
     restart: unless-stopped
@@ -17,6 +18,9 @@ services:
       - "traefik.http.routers.cleanclode.entrypoints=web,websecure"
       - "traefik.http.routers.cleanclode.tls.certresolver=letsencrypt"
       - "traefik.http.services.cleanclode.loadbalancer.server.port=80"
+    environment:
+      - VERSION=v2
+      - TITLE=Clean Clode v2 (with Markdown Table Preservation)
 
 networks:
   n8n_network:
