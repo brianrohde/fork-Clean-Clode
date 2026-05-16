@@ -595,6 +595,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const extraction = extractMarkdownTables(input);
             tables = extraction.tables;
             contentToClean = extraction.contentLines.join('\n');
+            console.log('DEBUG: Tables detected. Found', tables.length, 'tables');
+            console.log('DEBUG: First table:', tables[0]?.substring(0, 100));
         }
 
         let cleanedContent = contentToClean;
