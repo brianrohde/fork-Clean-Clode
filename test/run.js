@@ -235,6 +235,8 @@ for (const inputFile of testsToRun) {
     const testNum = inputFile.match(/input_(\d+)/)[1];
     const expectedFile = `expected_${testNum}.txt`;
     const expectedPath = path.join(testDir, expectedFile);
+    const outputFile = `output_${testNum}.txt`;
+    const outputPath = path.join(testDir, outputFile);
 
     // Skip if no expected output file
     if (!fs.existsSync(expectedPath)) {
@@ -249,6 +251,9 @@ for (const inputFile of testsToRun) {
     // Run the cleaning logic
     const output = detectAndClean(input);
 
+    // Always save the actual output
+    fs.writeFileSync(outputPath, output, 'utf8');
+
     if (output === expected) {
         console.log(`✅ test_${testNum}: PASSED`);
         passed++;
@@ -260,6 +265,7 @@ for (const inputFile of testsToRun) {
         console.log(indent(expected, 6));
         console.log(`\n   🔧 Got (${output.length} chars):`);
         console.log(indent(output, 6));
+        console.log(`\n   💾 Saved to: ${outputFile}`);
         console.log('');
         failed++;
     }
