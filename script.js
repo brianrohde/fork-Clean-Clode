@@ -610,7 +610,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (/^\s*\d+\s*[+-]\s/m.test(contentToClean)) {
             cleanedContent = cleanGitDiff(contentToClean);
-        } else if (/[│┃╏╎▌]/.test(contentToClean) || (!hasMarkdownTable && /\|/.test(contentToClean))) {
+        } else if (/[│┃╏╎▌]/.test(contentToClean)) {
+            // Always use cleanClaudeDump for box-drawing characters
+            cleanedContent = cleanClaudeDump(contentToClean);
+        } else if (/\|/.test(contentToClean) && !hasMarkdownTable) {
+            // Only use cleanClaudeDump for pipes if we haven't extracted tables
+            // (cleanClaudeDump strips pipes, which we want to avoid after table extraction)
             cleanedContent = cleanClaudeDump(contentToClean);
         } else {
             const codeScore = (contentToClean.match(/[{}();=]/g) || []).length;
