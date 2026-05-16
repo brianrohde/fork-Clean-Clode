@@ -63,10 +63,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const trimmed = line.trim();
 
             if (/^\s*\|/.test(trimmed)) {
-                const tableLines = [line];
+                const tableLines = [line.replace(/^\s+/, '')];
                 i++;
                 while (i < lines.length && /^\s*\|/.test(lines[i].trim())) {
-                    tableLines.push(lines[i]);
+                    tableLines.push(lines[i].replace(/^\s+/, ''));
                     i++;
                 }
                 tables.push(tableLines.join('\n'));
