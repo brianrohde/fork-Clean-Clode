@@ -43,7 +43,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function isMarkdownTable(text) {
-        return /^\s+\|/m.test(text);
+        // Match tables with optional leading spaces OR starting at column 0
+        return /^[\s]*\|/m.test(text);
     }
 
     function extractMarkdownTables(input) {
@@ -54,8 +55,9 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
 
-            if (/^\s+\|/.test(line)) {
-                currentTable.push(line.replace(/^\s+/, ''));
+            if (/^[\s]*\|/.test(line)) {
+                // Table line: strip any leading whitespace (0 or more spaces)
+                currentTable.push(line.replace(/^[\s]*/, ''));
             } else {
                 if (currentTable.length > 0) {
                     result.push({ type: 'table', content: currentTable.join('\n') });
@@ -600,13 +602,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return '';
         }
 
+        // Check if the entire document is indented (common with copy-pasted content)
+        // If most non-empty lines start with 2+ spaces, dedent them all
+        const lines = input.split('\n');
+        const nonEmptyLines = lines.filter(l => l.trim().length > 0);
+        const indentedLines = nonEmptyLines.filter(l => /^\s{2,}/.test(l)).length;
+
+        let dedentedInput = input;
+        if (nonEmptyLines.length > 0 && indentedLines / nonEmptyLines.length > 0.8) {
+            // Most lines are indented, strip ALL leading whitespace from each line
+            dedentedInput = lines.map(l => l.replace(/^\s+/, '')).join('\n');
+        }
+
         const preserveTables = isPreserveTablesEnabled();
         let hasMarkdownTable = false;
         let extracted = null;
 
-        if (preserveTables && isMarkdownTable(input)) {
+        if (preserveTables && isMarkdownTable(dedentedInput)) {
             hasMarkdownTable = true;
-            extracted = extractMarkdownTables(input);
+            extracted = extractMarkdownTables(dedentedInput);
             console.log('PRESERVE_TABLES_ENABLED: true');
             console.log('MARKDOWN_TABLE_DETECTED:', hasMarkdownTable);
             const tableCount = extracted.filter(item => item.type === 'table').length;
@@ -618,19 +632,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!hasMarkdownTable) {
             // No tables extracted, clean normally
-            let cleanedContent = input;
+            let cleanedContent = dedentedInput;
 
-            if (/^\s*\d+\s*[+-]\s/m.test(input)) {
-                cleanedContent = cleanGitDiff(input);
-            } else if (/[│┃╏╎▌]/.test(input) || /\|/.test(input)) {
-                cleanedContent = cleanClaudeDump(input);
+            if (/^\s*\d+\s*[+-]\s/m.test(dedentedInput)) {
+                cleanedContent = cleanGitDiff(dedentedInput);
+            } else if (/[│┃╏╎▌]/.test(dedentedInput) || /\|/.test(dedentedInput)) {
+                cleanedContent = cleanClaudeDump(dedentedInput);
             } else {
-                const codeScore = (input.match(/[{}();=]/g) || []).length;
-                const lineCount = input.split('\n').length;
+                const codeScore = (dedentedInput.match(/[{}();=]/g) || []).length;
+                const lineCount = dedentedInput.split('\n').length;
                 if (lineCount > 0 && codeScore / lineCount > 0.5) {
-                    cleanedContent = input.trim();
+                    cleanedContent = dedentedInput.trim();
                 } else {
-                    cleanedContent = cleanLLMText(input);
+                    cleanedContent = cleanLLMText(dedentedInput);
                 }
             }
 
