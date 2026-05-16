@@ -1,4 +1,10 @@
+// Global error handler for debugging
+window.addEventListener('error', function(e) {
+    console.error('🔴 GLOBAL ERROR:', e.message, e.filename + ':' + e.lineno);
+});
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🟢 DOMContentLoaded fired');
     const inputText = document.getElementById('input-text');
     const outputText = document.getElementById('output-text');
     const outputSection = document.querySelector('.output-section');
@@ -481,8 +487,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function performCleanup() {
+        console.log('🔵 performCleanup called');
         const inputValue = inputText.value;
-        
+
         if (!inputValue.trim()) {
             outputText.placeholder = '[ERROR: NO INPUT DETECTED]';
             setTimeout(() => {
@@ -490,42 +497,51 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
             return;
         }
-        
+
         cleanBtn.textContent = '[ PROCESSING... ]';
         cleanBtn.disabled = true;
-        
+
         setTimeout(() => {
-            const cleanedValue = detectAndClean(inputValue);
-            
-            outputText.value = cleanedValue;
-            updateOutputVisibility();
-            
-            saveToHistory(cleanedValue, inputValue);
-            
-            if (isFirstUse()) {
-                markFirstUseComplete();
-                localStorage.setItem(ABOUT_VISIBLE_KEY, 'false');
-                updateAboutSectionDisplay();
+            console.log('🟡 About to call detectAndClean');
+            try {
+                const cleanedValue = detectAndClean(inputValue);
+                console.log('✅ detectAndClean completed successfully');
+
+                outputText.value = cleanedValue;
+                updateOutputVisibility();
+
+                saveToHistory(cleanedValue, inputValue);
+
+                if (isFirstUse()) {
+                    markFirstUseComplete();
+                    localStorage.setItem(ABOUT_VISIBLE_KEY, 'false');
+                    updateAboutSectionDisplay();
+                }
+
+                editedBadge.style.display = 'none';
+                copiedBadge.style.display = 'none';
+
+                copyBtn.disabled = !cleanedValue;
+
+                if (copyBtn.classList.contains('copied')) {
+                    copyBtn.textContent = '[ COPY ]';
+                    copyBtn.classList.remove('copied');
+                }
+
+                cleanBtn.textContent = '[ Clean My Clode ]';
+                cleanBtn.disabled = false;
+
+                if (cleanedValue) {
+                    autoCopyToClipboard(cleanedValue);
+                }
+            } catch (err) {
+                console.error('🔴 ERROR in detectAndClean:', err.message);
+                console.error('Stack:', err.stack);
+                outputText.value = '[ERROR: ' + err.message + ']';
+                cleanBtn.textContent = '[ Clean My Clode ]';
+                cleanBtn.disabled = false;
             }
-            
-            editedBadge.style.display = 'none';
-            copiedBadge.style.display = 'none';
-            
-            copyBtn.disabled = !cleanedValue;
-            
-            if (copyBtn.classList.contains('copied')) {
-                copyBtn.textContent = '[ COPY ]';
-                copyBtn.classList.remove('copied');
-            }
-            
-            cleanBtn.textContent = '[ Clean My Clode ]';
-            cleanBtn.disabled = false;
-            
-            if (cleanedValue) {
-                autoCopyToClipboard(cleanedValue);
-                
-            }
-            
+
         }, 500);
     }
 
